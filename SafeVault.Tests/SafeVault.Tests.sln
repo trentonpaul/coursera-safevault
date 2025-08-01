@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SafeVault.Tests", "SafeVault.Tests.csproj", "{0F8CD7DC-F8F2-A7E6-0367-871709EB483A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0F8CD7DC-F8F2-A7E6-0367-871709EB483A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0F8CD7DC-F8F2-A7E6-0367-871709EB483A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0F8CD7DC-F8F2-A7E6-0367-871709EB483A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0F8CD7DC-F8F2-A7E6-0367-871709EB483A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4F741E92-A303-4CB8-AB14-18EAB05E5CE4}
+	EndGlobalSection
+EndGlobal

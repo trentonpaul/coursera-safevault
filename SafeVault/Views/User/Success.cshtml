@@ -1,0 +1,11 @@
+@model SafeVault.Models.User
+
+@{
+    ViewData["Title"] = "Success";
+}
+
+<h2>Your action succeeded!</h2>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

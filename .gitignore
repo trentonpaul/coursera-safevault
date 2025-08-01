@@ -1,0 +1,93 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# Azure Pipelines
+.vsts/
+
+# Rider project files
+.idea/
+*.sln.iml
+
+# Visual Studio Code
+.vscode/
+
+# DotCover
+*.dotCover
+
+# Resharper
+*.DotSettings.user
+_ReSharper*/
+*.[Rr]e[Ss]harper
+
+# Test results
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# Global JSON
+global.json
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# npm packages (for SPA projects)
+node_modules/
+
+# Logs
+*.log
+
+# Database files
+*.mdf
+*.ldf
+
+# Other
+*.vspscc
+*.vssscc
+*.ncrunch*
+*.localhistory
+*.sln.ide
+
+# Mac junk
+.DS_Store
+
+# Windows image thumbs
+Thumbs.db
+
+# JetBrains Rider
+.idea/
+
+# Optional: If you're using NuGet package restore
+*.nupkg
+*.snupkg
+*.symbols.nupkg
+packages/
+.nuget/
+
+# Optional: for dotnet CLI global tools
+.dotnet_tool/
+
+# Optional: for coverage reports
+coverage/
+coverage*.xml
+lcov.info
+
+# Optional: for publish outputs
+publish/
+
+# Optional: if you store settings or secrets locally
+secrets.json
+appsettings.*.local.json
