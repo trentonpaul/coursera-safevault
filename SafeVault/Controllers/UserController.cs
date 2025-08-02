@@ -45,12 +45,34 @@ namespace SafeVault.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
             if (!ModelState.IsValid)
                 return View(model);
 
-            var user = new IdentityUser { UserName = model.Username, Email = model.Email };
+            try
+            {
+                model.Email = ValidationUtils.SanitizeEmail(model.Email);
+            }
+            catch (FormatException ex)
+            {
+                ModelState.AddModelError(nameof(model.Email), ex.Message);
+                return View(model);
+            }
+
+            if (!ValidationUtils.IsValidPassword(model.Password))
+            {
+                ModelState.AddModelError(nameof(model.Password), "Password must be at least 8 characters long and include uppercase, lowercase, and a digit.");
+                return View(model);
+            }
+
+            var user = new IdentityUser
+            {
+                UserName = model.Username,
+                Email = model.Email
+            };
+
             var result = await _userManager.CreateAsync(user, model.Password);
 
             if (result.Succeeded)
@@ -81,12 +103,12 @@ namespace SafeVault.Controllers
                 return RedirectToAction("Success");
             }
 
-
             foreach (var error in result.Errors)
                 ModelState.AddModelError("", error.Description);
 
             return View(model);
         }
+
 
         public IActionResult Success()
         {
@@ -100,8 +122,10 @@ namespace SafeVault.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
+
             var user = await _userManager.FindByNameAsync(model.Username);
             if (user == null || !await _userManager.CheckPasswordAsync(user, model.Password))
             {
@@ -110,7 +134,6 @@ namespace SafeVault.Controllers
             }
 
             var userRoles = await _userManager.GetRolesAsync(user);
-
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
@@ -119,9 +142,7 @@ namespace SafeVault.Controllers
             };
 
             foreach (var role in userRoles)
-            {
                 claims.Add(new Claim(ClaimTypes.Role, role));
-            }
 
             var token = _tokenService.GenerateToken(claims);
 
