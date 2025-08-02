@@ -1,31 +1,14 @@
-// using Microsoft.EntityFrameworkCore;
-// using SafeVault.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
-// namespace SafeVault.Data
-// {
-//     public class SafeVaultDbContext : DbContext
-//     {
-//         public SafeVaultDbContext(DbContextOptions<SafeVaultDbContext> options)
-//             : base(options)
-//         {
-//         }
-
-//         public DbSet<User> Users { get; set; }
-
-//         protected override void OnModelCreating(ModelBuilder modelBuilder)
-//         {
-//             modelBuilder.Entity<User>().ToTable("Users");
-            
-//             // Optional: enforce additional constraints at the DB level
-//             modelBuilder.Entity<User>()
-//                 .Property(u => u.Username)
-//                 .IsRequired()
-//                 .HasMaxLength(100);
-
-//             modelBuilder.Entity<User>()
-//                 .Property(u => u.Email)
-//                 .IsRequired()
-//                 .HasMaxLength(100);
-//         }
-//     }
-// }
+namespace SafeVault.Data
+{
+    public class ApplicationDbContext : IdentityDbContext<IdentityUser>
+    {
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+            : base(options)
+        {
+        }
+    }
+}

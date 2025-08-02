@@ -1,4 +1,4 @@
-@model SafeVault.Models.User
+@model SafeVault.Models.RegisterViewModel
 
 @{
     ViewData["Title"] = "User Registration";
@@ -9,6 +9,7 @@
 <h2>User Registration</h2>
 
 <form asp-action="Register" method="post" novalidate>
+    @Html.AntiForgeryToken()
 
     @Html.ValidationSummary(true, "", new { @class = "text-danger" })
 
@@ -33,7 +34,6 @@
     @* Role *@
     <div class="form-group">
         <label asp-for="Role"></label>
-        @* <select asp-for="Role" class="form-control" asp-items="Html.GetEnumSelectList<SafeVault.Models.UserRole>()"></select> *@
         <select asp-for="Role" class="form-control" asp-items="ViewBag.RoleList"></select>
         <span asp-validation-for="Role" class="text-danger"></span>
     </div>

@@ -8,6 +8,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using SafeVault.Services;
 using System.IdentityModel.Tokens.Jwt;
+using Microsoft.AspNetCore.Identity;
 
 namespace SafeVault.Controllers
 {
@@ -16,7 +17,10 @@ namespace SafeVault.Controllers
         private readonly string _connectionString;
         private readonly ITokenService _tokenService;
         private readonly int _jwtMinutes;
-        public UserController(IConfiguration configuration, ITokenService tokenService)
+        private readonly UserManager<IdentityUser> _userManager;
+        private readonly SignInManager<IdentityUser> _signInManager;
+
+        public UserController(IConfiguration configuration, ITokenService tokenService, UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager)
         {
             var connSection = configuration.GetSection("ConnectionStrings");
             _connectionString = connSection["SafeVaultDb"]
@@ -28,9 +32,11 @@ namespace SafeVault.Controllers
             _jwtMinutes = int.TryParse(jwtMinutesValue, out int minutes) && minutes > 0
                 ? minutes
                 : 60;
+
+            _userManager = userManager;
+            _signInManager = signInManager;
+
         }
-
-
 
         [HttpGet]
         public IActionResult Register()
@@ -39,52 +45,47 @@ namespace SafeVault.Controllers
         }
 
         [HttpPost]
-        public IActionResult Register(string username, string email, string password, string role)
+        public async Task<IActionResult> Register(RegisterViewModel model)
         {
-            try
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var user = new IdentityUser { UserName = model.Username, Email = model.Email };
+            var result = await _userManager.CreateAsync(user, model.Password);
+
+            if (result.Succeeded)
             {
-                // Sanitize inputs
-                var cleanUsername = InputSanitizer.SanitizeUsername(username);
-                var cleanEmail = InputSanitizer.SanitizeEmail(email);
+                await _userManager.AddToRoleAsync(user, model.Role);
 
-                // Validate that inputs are not empty or malformed
-                if (string.IsNullOrWhiteSpace(cleanUsername) || string.IsNullOrWhiteSpace(cleanEmail))
+                var roles = await _userManager.GetRolesAsync(user);
+                var claims = new List<Claim>
                 {
-                    Console.WriteLine("Username or email is empty.");
-                    ModelState.AddModelError("", "Username and email are required.");
-                    return View("Register");
-                }
+                    new Claim(ClaimTypes.NameIdentifier, user.Id),
+                    new Claim(ClaimTypes.Name, user.UserName),
+                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                };
 
-                if (!PasswordTools.IsValidPassword(password))
+                foreach (var r in roles)
+                    claims.Add(new Claim(ClaimTypes.Role, r));
+
+                var token = _tokenService.GenerateToken(claims);
+
+                Response.Cookies.Append("AuthToken", token, new CookieOptions
                 {
-                    Console.WriteLine("Invalid password format.");
-                    ModelState.AddModelError("", "Password must be at least 8 characters long and contain uppercase, lowercase, and numeric characters.");
-                    return View("Register");
-                }
-
-                var passwordHash = PasswordTools.HashPassword(password);
-
-                // Insert into database using parameterized query
-                using var conn = new MySqlConnection(_connectionString);
-                conn.Open();
-                using var cmd = new MySqlCommand("INSERT INTO Users (Username, Email, PasswordHash, Role) VALUES (@Username, @Email, @PasswordHash, @Role)", conn);
-                cmd.Parameters.AddWithValue("@Username", cleanUsername);
-                cmd.Parameters.AddWithValue("@Email", cleanEmail);
-                cmd.Parameters.AddWithValue("@PasswordHash", passwordHash);
-                cmd.Parameters.AddWithValue("@Role", role);
-                cmd.ExecuteNonQuery();
-
-                // return View("Register");
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict,
+                    Expires = DateTimeOffset.UtcNow.AddMinutes(_jwtMinutes)
+                });
 
                 return RedirectToAction("Success");
             }
-            catch (Exception ex)
-            {
-                // Log exception and return friendly error
-                Console.WriteLine(ex);
-                ModelState.AddModelError("", "Something went wrong. Please try again.");
-                return View();
-            }
+
+
+            foreach (var error in result.Errors)
+                ModelState.AddModelError("", error.Description);
+
+            return View(model);
         }
 
         public IActionResult Success()
@@ -99,66 +100,40 @@ namespace SafeVault.Controllers
         }
 
         [HttpPost]
-        public IActionResult Login(string username, string password)
+        public async Task<IActionResult> Login(LoginViewModel model)
         {
-            try
+            var user = await _userManager.FindByNameAsync(model.Username);
+            if (user == null || !await _userManager.CheckPasswordAsync(user, model.Password))
             {
-                var cleanUsername = InputSanitizer.SanitizeUsername(username);
-
-                if (string.IsNullOrWhiteSpace(cleanUsername) || string.IsNullOrWhiteSpace(password))
-                {
-                    ModelState.AddModelError("", "Username and password are required.");
-                    return View();
-                }
-
-                using var conn = new MySqlConnection(_connectionString);
-                conn.Open();
-                using var cmd = new MySqlCommand("SELECT PasswordHash, Role FROM Users WHERE Username = @Username", conn);
-                cmd.Parameters.AddWithValue("@Username", cleanUsername);
-
-                using var reader = cmd.ExecuteReader();
-                if (!reader.Read())
-                {
-                    ModelState.AddModelError("", "Invalid username or password.");
-                    return View();
-                }
-
-                var passwordHash = reader.GetString("PasswordHash");
-                var role = reader.GetString("Role");
-
-                if (!PasswordTools.VerifyPassword(password, passwordHash))
-                {
-                    ModelState.AddModelError("", "Invalid username or password.");
-                    return View();
-                }
-
-                // Add role to JWT role
-                var claims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.NameIdentifier, cleanUsername),
-                    new Claim(ClaimTypes.Name, cleanUsername),
-                    new Claim(ClaimTypes.Role, role),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-                };
-
-                var token = _tokenService.GenerateToken(claims);
-
-                Response.Cookies.Append("AuthToken", token, new CookieOptions
-                {
-                    HttpOnly = true,
-                    Secure = true,
-                    SameSite = SameSiteMode.Strict,
-                    Expires = DateTimeOffset.UtcNow.AddMinutes(_jwtMinutes)
-                });
-
-                return RedirectToAction("Success");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-                ModelState.AddModelError("", "Something went wrong. Please try again.");
+                ModelState.AddModelError("", "Invalid credentials.");
                 return View();
             }
+
+            var userRoles = await _userManager.GetRolesAsync(user);
+
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
+                new Claim(ClaimTypes.Name, user.UserName),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
+
+            foreach (var role in userRoles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+
+            var token = _tokenService.GenerateToken(claims);
+
+            Response.Cookies.Append("AuthToken", token, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTimeOffset.UtcNow.AddMinutes(_jwtMinutes)
+            });
+
+            return RedirectToAction("Success");
         }
 
         [HttpGet]
@@ -166,7 +141,7 @@ namespace SafeVault.Controllers
         public IActionResult Admin()
         {
             // Writing specifcally for NUnit testing because it can't simulate auth middleware
-            if (!User.IsInRole("Admin"))
+            if (!User.IsInRole("ADMIN"))
             {
                 return Forbid();
             }
@@ -178,7 +153,7 @@ namespace SafeVault.Controllers
         public IActionResult UserOnly()
         {
             // Writing specifcally for NUnit testing because it can't simulate auth middleware
-            if (!User.IsInRole("User"))
+            if (!User.IsInRole("USER"))
             {
                 return Forbid();
             }
