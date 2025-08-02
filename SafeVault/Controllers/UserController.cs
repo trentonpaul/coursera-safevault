@@ -14,7 +14,6 @@ namespace SafeVault.Controllers
 {
     public class UserController : Controller
     {
-        private readonly string _connectionString;
         private readonly ITokenService _tokenService;
         private readonly int _jwtMinutes;
         private readonly UserManager<IdentityUser> _userManager;
@@ -22,9 +21,6 @@ namespace SafeVault.Controllers
 
         public UserController(IConfiguration configuration, ITokenService tokenService, UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager)
         {
-            var connSection = configuration.GetSection("ConnectionStrings");
-            _connectionString = connSection["SafeVaultDb"]
-                ?? throw new InvalidOperationException("Connection string 'SafeVaultDb' not found.");
 
             _tokenService = tokenService;
 

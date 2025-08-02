@@ -24,7 +24,7 @@ namespace SafeVault.Helpers
         public static string SanitizeEmail(string email)
         {
             if (string.IsNullOrWhiteSpace(email))
-                return string.Empty;
+                throw new FormatException("Email cannot be empty.");
 
             try
             {
