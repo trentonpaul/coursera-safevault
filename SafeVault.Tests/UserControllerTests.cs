@@ -288,5 +288,44 @@ namespace SafeVault.Tests
             Assert.That(result, Is.TypeOf<ForbidResult>());
         }
 
+        [Test]
+        public async Task Register_ShouldRejectOrHandle_MaliciousInputs()
+        {
+            var controller = BuildUserController();
+
+            var maliciousModel = new RegisterViewModel
+            {
+                Username = "normaluser",
+                Email = "user@example.com<script>alert('xss')</script>",  // XSS attempt
+                Password = "123'; DROP TABLE Users;--",                    // SQL injection attempt in password
+                Role = "USER"
+            };
+
+            // Act
+            IActionResult result = null;
+            try
+            {
+                result = await controller.Register(maliciousModel);
+            }
+            catch (Exception ex)
+            {
+                Assert.Fail($"Exception thrown during registration with malicious input: {ex.Message}");
+            }
+
+            // Assert that registration did NOT succeed (should return ViewResult for errors)
+            Assert.That(result, Is.TypeOf<ViewResult>());
+
+            // Assert ModelState contains errors on email and/or password fields or general errors
+            Assert.That(controller.ModelState.IsValid, Is.False);
+
+            bool hasEmailError = controller.ModelState.ContainsKey(nameof(maliciousModel.Email))
+                                 && controller.ModelState[nameof(maliciousModel.Email)].Errors.Count > 0;
+            bool hasPasswordError = controller.ModelState.ContainsKey(nameof(maliciousModel.Password))
+                                    && controller.ModelState[nameof(maliciousModel.Password)].Errors.Count > 0;
+
+            Assert.That(hasEmailError || hasPasswordError, Is.True,
+                "ModelState should contain errors for either Email or Password due to malicious input.");
+        }
+
     }
 }
